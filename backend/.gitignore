@@ -1,0 +1,13 @@
+# Stop secrets from uploading!
+.env
+
+# Stop user uploaded CSVs/Charts from uploading!
+uploads/
+
+# Stop messy Python cache files
+__pycache__/
+*.pyc
+
+# Stop virtual environments (if you made one)
+venv/
+env/

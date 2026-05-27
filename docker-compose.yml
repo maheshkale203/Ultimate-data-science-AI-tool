@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Superset metadata
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset_password_123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dataflow
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - dataflow
+
+  # Apache Superset Application
+  superset:
+    image: apache/superset:latest
+    container_name: superset_app
+    environment:
+      SUPERSET_SECRET_KEY: "your-secret-key-change-me"
+      SUPERSET_DATABASE_URI: "postgresql://superset:superset_password_123@postgres:5432/superset"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8088:8088"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - superset_home:/var/lib/superset
+    networks:
+      - dataflow
+    command: >
+      sh -c "superset db upgrade &&
+             superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin123 &&
+             superset load_examples &&
+             superset run -h 0.0.0.0 -p 8088"
+
+  # Superset Worker (for background tasks)
+  superset-worker:
+    image: apache/superset:latest
+    container_name: superset_worker
+    environment:
+      SUPERSET_SECRET_KEY: "your-secret-key-change-me"
+      SUPERSET_DATABASE_URI: "postgresql://superset:superset_password_123@postgres:5432/superset"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+      - superset
+    networks:
+      - dataflow
+    command: celery --app superset.tasks.celery_app:app worker --loglevel=info
+
+volumes:
+  postgres_data:
+  superset_home:
+
+networks:
+  dataflow:
+    driver: bridge

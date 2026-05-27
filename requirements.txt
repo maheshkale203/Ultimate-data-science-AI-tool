@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+neon
+python-dotenv
+groq
+pandas
+numpy
+scikit-learn
+openpyxl
+aiofiles
+python-multipart
+pydantic
